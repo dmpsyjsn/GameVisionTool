@@ -11,28 +11,78 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    runs-on: windows-latest
+  # Runs on Linux: nothing in the test project's dependency chain touches MAUI, so this
+  # needs no workload install and bills at 1x. This is the job that gates a PR.
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v4
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-    - name: Install MAUI workload
-      run: dotnet workload install maui-windows
+
     - name: Cache NuGet packages
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
         restore-keys: ${{ runner.os }}-nuget-
-    - name: Restore dependencies
-      run: dotnet restore
+
+    - name: Build test project
+      run: dotnet build GameVisionTool.IntegrationTests/GameVisionTool.IntegrationTests.csproj --configuration Release
       working-directory: source/GameVisionTool/
-    - name: Build solution
-      run: dotnet build --configuration Release --no-restore
-      working-directory: source/GameVisionTool/
+
+    # Not "dotnet test": on the .NET 10 SDK it reports "Zero tests ran" and exits 5 without
+    # ever launching the test app. The assembly is a Microsoft.Testing.Platform entry point
+    # and runs all tests correctly when invoked directly.
     - name: Run unit tests
       run: dotnet exec GameVisionTool.IntegrationTests/bin/Release/net10.0/GameVisionTool.IntegrationTests.dll
+      working-directory: source/GameVisionTool/
+
+  # Compile-checks the MAUI app, the only project needing a Windows runner and the maui
+  # workload. Deliberately restricted to pushes to main: Windows bills at 2x on a private
+  # repo and the workload install alone is ~5 minutes that the NuGet cache cannot help
+  # with, so this runs once per merge rather than once per PR commit.
+  build-maui:
+    name: Build MAUI app
+    if: github.event_name == 'push'
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Install MAUI workload
+      run: dotnet workload install maui-windows
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: ${{ runner.os }}-nuget-
+
+    # The WinUI target needs an explicit RuntimeIdentifier or its runtime pack is never
+    # restored, and the build fails with NETSDK1112. It builds locally without one only
+    # because Visual Studio has already put that pack in the NuGet cache.
+    #
+    # PublishReadyToRun=false because the MAUI SDK turns R2R on for Release Windows builds,
+    # and leaving it on fails with NETSDK1094 unless the crossgen pack is restored as well.
+    # This job verifies the app compiles; R2R only optimises published output, so skipping
+    # it saves a download and roughly half the build time. Drop the property if this job
+    # ever grows into producing a real release artifact.
+    - name: Restore MAUI app
+      run: dotnet restore GameVisionTool.UI.Maui/GameVisionTool.UI.Maui.csproj -r win-x64 -p:PublishReadyToRun=false
+      working-directory: source/GameVisionTool/
+
+    - name: Build MAUI app
+      run: dotnet build GameVisionTool.UI.Maui/GameVisionTool.UI.Maui.csproj --configuration Release -r win-x64 -p:PublishReadyToRun=false --no-restore
       working-directory: source/GameVisionTool/
