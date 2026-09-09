@@ -1,21 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LiteDB" Version="5.0.21" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
-    <PackageReference Include="SimpleInjector" Version="5.5.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Scrutor" Version="7.0.0" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GameVisionTool.Common.Domain\GameVisionTool.Common.Domain.csproj" />
     <ProjectReference Include="..\GameVisionTool.Common.Validation\GameVisionTool.Common.Validation.csproj" />
+    <ProjectReference Include="..\GameVisionTool.Integration.LlamaSharp\GameVisionTool.Integration.LlamaSharp.csproj" />
     <ProjectReference Include="..\GameVisionTool.Messages\GameVisionTool.Messages.csproj" />
+    <ProjectReference Include="..\GameVisionTool.Persistence.LiteDb\GameVisionTool.Persistence.LiteDb.csproj" />
   </ItemGroup>
 
 </Project>

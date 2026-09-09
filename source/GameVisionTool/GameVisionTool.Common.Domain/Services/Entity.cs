@@ -1,11 +1,8 @@
-﻿using NodaTime;
-using System.Diagnostics.CodeAnalysis;
+﻿namespace GameVisionTool.Common.Domain.Services;
 
-namespace GameVisionTool.Common.Domain.Services;
-
-public abstract class Entity
+public abstract class Entity<TKey> where TKey : IEquatable<TKey>
 {
-    public virtual required int Id { get; set; }
-    public Instant CreatedOn { get; set; }
-    public Instant ModifiedOn { get; set; }
+    public virtual required TKey Id { get; set; }
+    public DateTime? CreatedOn { get; set; }
+    public DateTime? ModifiedOn { get; set; }
 }

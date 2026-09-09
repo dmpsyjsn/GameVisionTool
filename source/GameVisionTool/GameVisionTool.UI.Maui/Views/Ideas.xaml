@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:views="using:GameVisionTool.UI.Maui.Views"
+             xmlns:queries="clr-namespace:GameVisionTool.Messages.Queries.Ideas;assembly=GameVisionTool.Messages"
+             x:Class="GameVisionTool.UI.Maui.Views.Ideas"
+             x:DataType="views:Ideas">
+    <ContentPage.Content>
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+                <Label
+                    Text="Ideas"
+                    Style="{StaticResource Headline}"
+                    HorizontalOptions="Center" />
+
+                <!-- Add / Edit an Idea. One form serves both: Edit on a row fills it in and flips the
+                     button over to Save Changes - see EditingIdeaId in the code-behind. -->
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                        Padding="15">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <Border x:Name="IdeaFormSection"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                            Stroke="Black"
+                            StrokeThickness="2"
+                            Padding="10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="5" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Padding="20" Spacing="20">
+                            <Label
+                                Text="{Binding IdeaFormHeading}"
+                                Style="{StaticResource Headline}"
+                                HorizontalOptions="Center" />
+
+                            <Label
+                                Text="Title:"
+                                FontAttributes="Bold"
+                                TextColor="Black" />
+
+                            <Entry
+                                Text="{Binding IdeaTitle}"
+                                Placeholder="e.g., Derelict station opening scene"
+                                BackgroundColor="White"
+                                TextColor="Black"
+                                Keyboard="Text"
+                                MaxLength="200" />
+
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0"
+                                        Text="{Binding SaveIdeaButtonText}"
+                                        Clicked="OnSaveIdea"
+                                        IsEnabled="{Binding CanSaveIdea}"
+                                        BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                        TextColor="White" />
+
+                                <Button Grid.Column="1"
+                                        Text="Cancel"
+                                        Clicked="OnCancelEditIdea"
+                                        IsVisible="{Binding IsEditingIdea}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}"
+                                        TextColor="White"
+                                        Padding="15,8" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </Border>
+
+                <!-- Idea Collection Grid -->
+                <Border x:Name="IdeaCollectionGrid"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                        Stroke="DarkGray"
+                        StrokeThickness="1"
+                        Padding="15">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="15">
+                        <CollectionView x:Name="IdeaCollectionView"
+                                        ItemsSource="{Binding IdeaModels}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical"
+                                                 Span="2"
+                                                 HorizontalItemSpacing="10"
+                                                 VerticalItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="queries:IdeaViewModel">
+                                    <Border BackgroundColor="{AppThemeBinding Light=WhiteSmoke, Dark=Gray}"
+                                            Stroke="{AppThemeBinding Light=LightGray, Dark=DarkGray}"
+                                            StrokeThickness="1"
+                                            Padding="15">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+
+                                        <VerticalStackLayout Spacing="8">
+                                            <!-- Title -->
+                                            <Label Text="{Binding Title}"
+                                                   FontSize="16"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+
+                                            <!-- Action Buttons -->
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Button Grid.Column="1"
+                                                        Text="Edit"
+                                                        Clicked="OnEditIdea"
+                                                        BackgroundColor="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}"
+                                                        TextColor="White"
+                                                        FontSize="12"
+                                                        Padding="8,4"
+                                                        HorizontalOptions="End" />
+
+                                                <Button Grid.Column="2"
+                                                        Text="Delete"
+                                                        Clicked="OnDeleteIdea"
+                                                        BackgroundColor="Red"
+                                                        TextColor="White"
+                                                        FontSize="12"
+                                                        Padding="8,4"
+                                                        HorizontalOptions="End" />
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+
+                            <CollectionView.EmptyView>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                                    <Label Text="No Ideas Found"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="Gray" />
+                                </VerticalStackLayout>
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </ContentPage.Content>
+</ContentPage>

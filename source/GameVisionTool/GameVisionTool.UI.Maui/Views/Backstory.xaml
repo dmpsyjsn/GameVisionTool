@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:views="using:GameVisionTool.UI.Maui.Views"
+             xmlns:ideas="clr-namespace:GameVisionTool.Messages.Queries.Ideas;assembly=GameVisionTool.Messages"
+             xmlns:mainSettings="clr-namespace:GameVisionTool.Messages.Queries.MainSettings;assembly=GameVisionTool.Messages"
+             x:Class="GameVisionTool.UI.Maui.Views.Backstory"
+             x:DataType="views:Backstory">
+    <ContentPage.Content>
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+                <Label
+                    Text="Backstory"
+                    Style="{StaticResource Headline}"
+                    HorizontalOptions="Center" />
+
+                <!-- Source selection. API LLMs are deliberately left out for now: only local .gguf
+                     models are offered here. -->
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                        Padding="15">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <Grid ColumnSpacing="15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.5*" />
+                            <ColumnDefinition Width="0.5*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Idea -->
+                        <Border x:Name="IdeaSelectionColumn"
+                                Grid.Column="0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label
+                                    Text="Idea"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <Label
+                                    Text="Select an Idea:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding IdeaModels}"
+                                        ItemDisplayBinding="{Binding Title, x:DataType=ideas:IdeaViewModel}"
+                                        SelectedItem="{Binding SelectedIdea, Mode=TwoWay}"
+                                        Title="-- Select Idea --"
+                                        IsEnabled="{Binding CanSelectIdea}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <!-- Nothing to pick from is a setup problem, not an error, so say
+                                     where the list comes from. -->
+                                <Label
+                                    Text="No ideas yet. Add one on the Ideas tab."
+                                    IsVisible="{Binding HasIdeas, Converter={toolkit:InvertedBoolConverter}}"
+                                    TextColor="Gray"
+                                    FontAttributes="Italic" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Local LLM -->
+                        <Border x:Name="LocalLlmSelectionColumn"
+                                Grid.Column="1"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label
+                                    Text="Local LLM"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <Label
+                                    Text="Select a Model:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding LocalLlmModels}"
+                                        ItemDisplayBinding="{Binding Name, x:DataType=mainSettings:LocalLlmFilePathViewModel}"
+                                        SelectedItem="{Binding SelectedLocalLlm, Mode=TwoWay}"
+                                        Title="-- Select Local LLM --"
+                                        IsEnabled="{Binding CanSelectLocalLlm}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <!-- The picker is disabled while the weights load, which takes long
+                                     enough to look like a hang without something saying so. -->
+                                <HorizontalStackLayout Spacing="10"
+                                                       IsVisible="{Binding IsLoadingModel}">
+                                    <ActivityIndicator IsRunning="{Binding IsLoadingModel}"
+                                                       HeightRequest="16"
+                                                       WidthRequest="16"
+                                                       Color="{AppThemeBinding Light=Black, Dark=White}" />
+                                    <Label Text="Loading model..."
+                                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                           FontAttributes="Italic"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+
+                                <Label
+                                    Text="Model File:"
+                                    FontAttributes="Bold"
+                                    IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+                                    TextColor="Black" />
+
+                                <Label
+                                    Text="{Binding SelectedLocalLlmFilePath}"
+                                    IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+                                    FontFamily="Consolas"
+                                    FontSize="12"
+                                    BackgroundColor="White"
+                                    Padding="10"
+                                    TextColor="Black"
+                                    LineBreakMode="TailTruncation" />
+
+                                <Label
+                                    Text="No local LLMs yet. Add one on the Settings tab."
+                                    IsVisible="{Binding HasLocalLlms, Converter={toolkit:InvertedBoolConverter}}"
+                                    TextColor="Gray"
+                                    FontAttributes="Italic" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Brief and generation. The brief is passed through as the user turn; the
+                     novelist persona and the standing style rules live in the agent's system
+                     prompt, not here. -->
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                        Padding="15">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <!-- Same inner panel as the Idea and Local LLM columns, so the section reads as
+                         part of the same page in both themes. -->
+                    <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                            Stroke="Black"
+                            StrokeThickness="2"
+                            Padding="10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="5" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Padding="20" Spacing="20">
+                            <Label
+                                Text="Brief"
+                                Style="{StaticResource Headline}"
+                                HorizontalOptions="Center" />
+
+                            <Label
+                                Text="What should the backstory cover?"
+                                FontAttributes="Bold"
+                                TextColor="Black" />
+
+                            <Editor
+                                Text="{Binding BackstoryBrief}"
+                                Placeholder="Leave blank to let the model invent a character of its own."
+                                IsEnabled="{Binding CanEditBrief}"
+                                HeightRequest="120"
+                                BackgroundColor="White"
+                                TextColor="Black" />
+
+                            <Button
+                                Text="Generate Backstory"
+                                Clicked="OnGenerateBackstoryClicked"
+                                IsEnabled="{Binding CanGenerate}"
+                                BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                TextColor="White"
+                                Margin="0,10,0,0" />
+
+                            <!-- Generation runs for minutes on a local model and cannot be cancelled -
+                                IAsyncQueryHandler carries no CancellationToken - so the wait needs to
+                                look deliberate rather than frozen. -->
+                            <HorizontalStackLayout Spacing="10"
+                                                   IsVisible="{Binding IsGenerating}">
+                                <ActivityIndicator IsRunning="{Binding IsGenerating}"
+                                                   HeightRequest="16"
+                                                   WidthRequest="16"
+                                                   Color="Black" />
+                                <Label Text="Writing backstory..."
+                                       TextColor="Black"
+                                       FontAttributes="Italic"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+
+                            <Label
+                                Text="Backstory:"
+                                FontAttributes="Bold"
+                                IsVisible="{Binding HasGeneratedBackstory}"
+                                TextColor="Black" />
+
+                            <!-- An Editor rather than a Label: Label text cannot be selected, so the
+                                 result would be readable but not copyable. Editable also lets the draft
+                                 be tidied in place before it is used. -->
+                            <Editor
+                                Text="{Binding GeneratedBackstory, Mode=TwoWay}"
+                                IsVisible="{Binding HasGeneratedBackstory}"
+                                HeightRequest="320"
+                                BackgroundColor="White"
+                                TextColor="Black" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </ContentPage.Content>
+</ContentPage>

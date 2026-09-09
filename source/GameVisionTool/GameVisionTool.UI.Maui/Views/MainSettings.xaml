@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:views="using:GameVisionTool.UI.Maui.Views"
+             xmlns:queries="clr-namespace:GameVisionTool.Messages.Queries.MainSettings;assembly=GameVisionTool.Messages"
+             x:Class="GameVisionTool.UI.Maui.Views.MainSettings"
+             x:DataType="views:MainSettings">
+    <ContentPage.Content>
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+                <Label 
+                    Text="Settings"
+                    Style="{StaticResource Headline}"
+                    HorizontalOptions="Center" />
+
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" 
+                        Padding="15">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.5*" />
+                            <ColumnDefinition Width="0.5*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Local LLM -->
+                        <Border x:Name="LocalLlmColumn"
+                                Grid.Column="0" 
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10"
+                                x:FieldModifier="public">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label 
+                                    Text="Local LLM Settings"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <Label
+                                    Text="Add Local LLM File"
+                                    FontSize="18"
+                                    FontAttributes="Bold" 
+                                    TextColor="Black" />
+
+                                <Button
+                                    Text="Browse Files"
+                                    Clicked="OnLocalLLMSettingsPickFileClicked"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}"
+                                    TextColor="White" />
+
+                                <Label
+                                    Text="Selected File:"
+                                    FontAttributes="Bold" 
+                                    TextColor="Black" />
+
+                                <Label
+                                    Text="{Binding SelectedLocalLlmFilePath}"
+                                    IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+                                    FontFamily="Consolas"
+                                    BackgroundColor="White"
+                                    Padding="10"
+                                    TextColor="Black" />
+
+                                <Label
+                                    Text="No file selected"
+                                    IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNullOrEmptyConverter}}"
+                                    TextColor="Gray"
+                                    FontAttributes="Italic" />
+
+                                <!-- LLM Name Input Section -->
+                                <VerticalStackLayout Spacing="5" 
+                                                     IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                                    <Label
+                                        Text="Enter a name for this LLM:"
+                                        FontAttributes="Bold"
+                                        TextColor="Black" />
+
+                                    <Entry
+                                        Text="{Binding LocalLlmName}"
+                                        Placeholder="e.g., Llama 2 7B Chat"
+                                        BackgroundColor="White"
+                                        TextColor="Black"
+                                        Keyboard="Text"
+                                        MaxLength="100" />
+                                </VerticalStackLayout>
+
+                                <!-- Save Button -->
+                                <Button
+                                    Text="Add LLM"
+                                    Clicked="OnAddLocalLLM"
+                                    IsEnabled="{Binding CanAddLocalLlm}"
+                                    BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                    TextColor="White"
+                                    Margin="0,10,0,0" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- API LLM -->
+                        <Border x:Name="ApiLlmColumn"
+                                Grid.Column="1" 
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label 
+                                    Text="Api LLM Settings"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <Label
+                                    Text="Add API LLM"
+                                    FontSize="18"
+                                    FontAttributes="Bold" 
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding ApiLlmTypeOptions}"
+                                        SelectedItem="{Binding SelectedApiLlmTypeDescription, Mode=TwoWay}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <!-- API LLM Key Input Section -->
+                                <Label
+                                    Text="API Key:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding ApiLlmKey}"
+                                    Placeholder="Enter your API key"
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    Keyboard="Text"
+                                    IsPassword="False"
+                                    MaxLength="200" />
+
+                                <!-- API LLM Url Input Section. Hidden for providers whose SDK resolves
+                                     its own endpoint from the API key (Gemini) — see IsApiLlmUrlVisible. -->
+                                <VerticalStackLayout Spacing="20"
+                                                     IsVisible="{Binding IsApiLlmUrlVisible}">
+                                    <Label
+                                        Text="API Url:"
+                                        FontAttributes="Bold"
+                                        TextColor="Black" />
+
+                                    <Entry
+                                        Text="{Binding ApiLlmUrl}"
+                                        Placeholder="Enter your API Url"
+                                        BackgroundColor="White"
+                                        TextColor="Black"
+                                        Keyboard="Text"
+                                        IsPassword="False"
+                                        MaxLength="200" />
+                                </VerticalStackLayout>
+
+                                <!-- Save Button -->
+                                <Button
+                                    Text="Add API LLM"
+                                    Clicked="OnAddApiLlm"
+                                    IsEnabled="{Binding CanSaveApiLlm}"
+                                    BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                    TextColor="White"
+                                    Margin="0,10,0,0" />
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- LLM Collection Grids -->
+                <Border x:Name="LlmCollectionGrid"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" 
+                        Stroke="DarkGray" 
+                        StrokeThickness="1" 
+                        Padding="15">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="15">
+                        <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                            <Button x:Name="LocalLlmButton"
+                                Text="Local LLMs"
+                                Clicked="OnLocalLLMsButtonClicked"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}"
+                                TextColor="White"
+                                Padding="15,8"
+                                CornerRadius="5"
+                                FontSize="14"
+                                FontAttributes="Bold" />
+
+                            <Button x:Name="ApiLlmButton"
+                                Text="API LLMs"
+                                Clicked="OnApiLLMsButtonClicked"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}"
+                                TextColor="White"
+                                Padding="15,8"
+                                CornerRadius="5"
+                                FontSize="14"
+                                FontAttributes="Bold" />
+                        </HorizontalStackLayout>
+
+                        <CollectionView x:Name="LocalLlmCollectionView"
+                                        ItemsSource="{Binding LocalLlmModels}" 
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" 
+                                                 Span="2" 
+                                                 HorizontalItemSpacing="10"
+                                                 VerticalItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="queries:LocalLlmFilePathViewModel">
+                                    <Border BackgroundColor="{AppThemeBinding Light=WhiteSmoke, Dark=Gray}" 
+                                            Stroke="{AppThemeBinding Light=LightGray, Dark=DarkGray}"
+                                            StrokeThickness="1" 
+                                            Padding="15">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+
+                                        <VerticalStackLayout Spacing="8">
+                                            <!-- Model Name -->
+                                            <Label Text="{Binding Name}" 
+                                                   FontSize="16" 
+                                                   FontAttributes="Bold" 
+                                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+
+                                            <!-- File Path (truncated) -->
+                                            <Label FontSize="12" 
+                                                   TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"
+                                                   LineBreakMode="TailTruncation">
+                                                <Label.Text>
+                                                    <Binding Path="FullFilePath" StringFormat="Path: {0}" />
+                                                </Label.Text>
+                                            </Label>
+
+                                            <!-- Action Buttons -->
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Button Grid.Column="1"
+                                                        Text="Delete" 
+                                                        Clicked="OnDeleteLocalLLM"
+                                                        BackgroundColor="Red" 
+                                                        TextColor="White" 
+                                                        FontSize="12" 
+                                                        Padding="8,4"
+                                                        HorizontalOptions="End" />
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+
+                            <CollectionView.EmptyView>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                                    <Label Text="No Local LLMs Found" 
+                                           FontSize="16" 
+                                           FontAttributes="Bold" 
+                                           TextColor="Gray" />
+                                </VerticalStackLayout>
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+
+                        <CollectionView x:Name="ApiCollectionGrid"
+                            ItemsSource="{Binding ApiSettings}" 
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" 
+                                     Span="2" 
+                                     HorizontalItemSpacing="10"
+                                     VerticalItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="queries:ApiLlmSettingViewModel">
+                                    <Border BackgroundColor="{AppThemeBinding Light=WhiteSmoke, Dark=Gray}" 
+                                        Stroke="{AppThemeBinding Light=LightGray, Dark=DarkGray}"
+                                        StrokeThickness="1" 
+                                        Padding="15">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+
+                                        <VerticalStackLayout Spacing="8">
+                                            <!-- Api LLM TYPE -->
+                                            <Label Text="{Binding Type}" 
+                                               FontSize="16" 
+                                               FontAttributes="Bold" 
+                                               TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+
+                                            <!-- Api Key -->
+                                            <Label FontSize="12" 
+                                               TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"
+                                               LineBreakMode="TailTruncation">
+                                                
+                                                <Label.Text>
+                                                    <Binding Path="ApiKey" StringFormat="Api Key: {0}" />
+                                                </Label.Text>
+                                                
+                                            </Label>
+
+                                            <!-- Api Url. Absent for providers that don't take one, so the
+                                                 row is dropped rather than shown with a blank value. -->
+                                            <Label FontSize="12"
+                                                   TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"
+                                                   IsVisible="{Binding ApiUrl, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+                                                   LineBreakMode="TailTruncation">
+
+                                                <Label.Text>
+                                                    <Binding Path="ApiUrl" StringFormat="Api Url: {0}" />
+                                                </Label.Text>
+
+                                            </Label>
+
+                                            <!-- Action Buttons -->
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Button Grid.Column="1"
+                                                    Text="Delete" 
+                                                    Clicked="OnDeleteApiLlmSetting"
+                                                    BackgroundColor="Red" 
+                                                    TextColor="White" 
+                                                    FontSize="12" 
+                                                    Padding="8,4"
+                                                    HorizontalOptions="End" />
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+
+                            <CollectionView.EmptyView>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                                    <Label Text="No Api LLM Settings Found" 
+                                       FontSize="16" 
+                                       FontAttributes="Bold" 
+                                       TextColor="Gray" />
+                                </VerticalStackLayout>
+                            </CollectionView.EmptyView>
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </ContentPage.Content>
+</ContentPage>

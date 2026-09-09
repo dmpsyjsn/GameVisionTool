@@ -396,3 +396,19 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/source/GameVisionTool/CLAUDE.md
+
+# Never commit credential files, whatever produces them.
+secrets.json
+secrets.*.json
+*.secrets.json
+.env
+.env.*
+!.env.example
+
+# Local NuGet overrides (machine-specific feed state, not shared)
+/NuGet.Config
+
+# Test run output
+TestResults/
+/source/GameVisionTool/.idea/.idea.GameVisionTool/.idea

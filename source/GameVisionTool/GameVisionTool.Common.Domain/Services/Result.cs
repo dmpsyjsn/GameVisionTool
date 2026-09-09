@@ -53,25 +53,13 @@ public class Result
 
 public class Result<T> : Result
 {
-    private T _value;
-    public T Value
-    {
-        get
-        {
-            if (!IsSuccess && string.IsNullOrEmpty(Error))
-                throw new InvalidOperationException("There is no value for failure.");
-
-            return _value;
-        }
-
-        private set => _value = value;
-    }
+    public T Value { get; private set; }
 
     protected internal Result(T value, bool isSuccess, string error) : base(isSuccess, error)
     {
         if (!IsFailure && value == null)
             throw new ArgumentNullException(nameof(value));
 
-        _value = value;
+        Value = value;
     }
 }
