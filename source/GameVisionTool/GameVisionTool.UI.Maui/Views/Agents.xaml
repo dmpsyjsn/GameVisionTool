@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:views="using:GameVisionTool.UI.Maui.Views"
+             xmlns:queries="clr-namespace:GameVisionTool.Messages.Queries.Agents;assembly=GameVisionTool.Messages"
+             x:Class="GameVisionTool.UI.Maui.Views.Agents"
+             x:DataType="views:Agents">
+    <ContentPage.Content>
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+                <Label
+                    Text="Agents"
+                    Style="{StaticResource Headline}"
+                    HorizontalOptions="Center" />
+
+                <!-- Provider tabs. IsApiTabSelected/IsLocalTabSelected in the code-behind decides which
+                     section below is visible; the API side is one button per ApiLlmType, generated
+                     from ApiLlmTabOptions rather than hardcoded, so a new provider only needs a new
+                     enum member. Since BindableLayout gives those buttons no x:Name to data-trigger
+                     against each other, their highlight color is pushed imperatively from
+                     RefreshApiTabButtonColors instead. -->
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Text="Local"
+                            Clicked="OnSelectLocalTab"
+                            TextColor="White">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}" />
+                                <Style.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsLocalTabSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <HorizontalStackLayout Grid.Column="1"
+                                           x:Name="ApiTabButtonsLayout"
+                                           Spacing="10"
+                                           BindableLayout.ItemsSource="{Binding ApiLlmTabOptions}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="views:ApiLlmTabOption">
+                                <Button Text="{Binding Description}"
+                                        Clicked="OnSelectApiTab"
+                                        TextColor="White"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <!-- ============================= Local (Llama) tab ============================= -->
+                <VerticalStackLayout Spacing="20" IsVisible="{Binding IsLocalTabSelected}">
+
+                    <!-- Add / Edit a Llama Agent. One form serves both: Edit on a row fills it in and
+                         flips the button over to Save Changes - see EditingLlamaAgentId in the code-behind. -->
+                    <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                            Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+
+                        <Border x:Name="LlamaAgentFormSection"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label
+                                    Text="{Binding LlamaAgentFormHeading}"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <Label
+                                    Text="Name:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding LlamaAgentName}"
+                                    Placeholder="e.g., Science Fiction Novelist"
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    Keyboard="Text"
+                                    MaxLength="100" />
+
+                                <Label
+                                    Text="Group:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding AgentGroupTypeOptions}"
+                                        SelectedItem="{Binding SelectedLlamaAgentGroupTypeDescription, Mode=TwoWay}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <Label
+                                    Text="System Prompt:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Editor
+                                    Text="{Binding LlamaAgentSystemPrompt}"
+                                    Placeholder="Describe how this agent should behave when generating a response."
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="150" />
+
+                                <Label
+                                    Text="Max Tokens:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding LlamaAgentMaxTokens}"
+                                    Placeholder="4096"
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    Keyboard="Numeric" />
+
+                                <Label
+                                    Text="Temperature:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding LlamaAgentTemperature}"
+                                    Placeholder="0.9"
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    Keyboard="Numeric" />
+
+                                <HorizontalStackLayout Spacing="5">
+                                    <CheckBox IsChecked="{Binding LlamaAgentSuppressThinking}"
+                                              Color="Black"
+                                              VerticalOptions="Center" />
+
+                                    <Label
+                                        Text="Suppress Thinking"
+                                        FontAttributes="Bold"
+                                        TextColor="Black"
+                                        VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+
+                                <Label
+                                    Text="Only for models whose chat template uses &lt;think&gt; tags. Turn it off for a model that reasons in plain prose, or it can run past the end of its turn and repeat itself."
+                                    FontSize="11"
+                                    TextColor="DimGray" />
+
+                                <Label
+                                    Text="Stop Marker:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding LlamaAgentStopMarker}"
+                                    Placeholder="&lt;&lt;&lt;END&gt;&gt;&gt;"
+                                    BackgroundColor="White"
+                                    TextColor="Black" />
+
+                                <Label
+                                    Text="Generation stops as soon as the model writes this. Tell the system prompt above to end with it, word for word, or it will never appear. Pick something prose will never contain - a plain word like END would cut the response off at the first sentence that used it. Leave blank to rely on the model ending its own turn."
+                                    FontSize="11"
+                                    TextColor="DimGray" />
+
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Grid.Column="0"
+                                            Text="{Binding SaveLlamaAgentButtonText}"
+                                            Clicked="OnSaveLlamaAgent"
+                                            IsEnabled="{Binding CanSaveLlamaAgent}"
+                                            BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                            TextColor="White" />
+
+                                    <Button Grid.Column="1"
+                                            Text="Cancel"
+                                            Clicked="OnCancelEditLlamaAgent"
+                                            IsVisible="{Binding IsEditingLlamaAgent}"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}"
+                                            TextColor="White"
+                                            Padding="15,8" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Border>
+
+                    <!-- Llama Agent Collection Grid -->
+                    <Border x:Name="LlamaAgentCollectionGrid"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                            Stroke="DarkGray"
+                            StrokeThickness="1"
+                            Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="15">
+                            <CollectionView x:Name="LlamaAgentCollectionView"
+                                            ItemsSource="{Binding LlamaAgentModels}"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}">
+                                <CollectionView.ItemsLayout>
+                                    <GridItemsLayout Orientation="Vertical"
+                                                     Span="2"
+                                                     HorizontalItemSpacing="10"
+                                                     VerticalItemSpacing="10" />
+                                </CollectionView.ItemsLayout>
+
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="queries:AgentViewModel">
+                                        <Border BackgroundColor="{AppThemeBinding Light=WhiteSmoke, Dark=Gray}"
+                                                Stroke="{AppThemeBinding Light=LightGray, Dark=DarkGray}"
+                                                StrokeThickness="1"
+                                                Padding="15">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+
+                                            <VerticalStackLayout Spacing="8">
+                                                <!-- Name -->
+                                                <Label Text="{Binding Name}"
+                                                       FontSize="16"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+
+                                                <!-- Group -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="GroupType" StringFormat="Group: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- System Prompt (truncated) -->
+                                                <Label FontSize="12"
+                                                       TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"
+                                                       MaxLines="3"
+                                                       LineBreakMode="TailTruncation"
+                                                       Text="{Binding SystemPrompt}" />
+
+                                                <!-- Max Tokens -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="MaxTokens" StringFormat="Max Tokens: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Temperature -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="Temperature" StringFormat="Temperature: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Suppress Thinking -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="SuppressThinking" StringFormat="Suppress Thinking: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Stop Marker -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="StopMarker" StringFormat="Stop Marker: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Action Buttons -->
+                                                <Grid ColumnSpacing="10">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Button Grid.Column="1"
+                                                            Text="Edit"
+                                                            Clicked="OnEditLlamaAgent"
+                                                            BackgroundColor="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}"
+                                                            TextColor="White"
+                                                            FontSize="12"
+                                                            Padding="8,4"
+                                                            HorizontalOptions="End" />
+
+                                                    <Button Grid.Column="2"
+                                                            Text="Delete"
+                                                            Clicked="OnDeleteLlamaAgent"
+                                                            BackgroundColor="Red"
+                                                            TextColor="White"
+                                                            FontSize="12"
+                                                            Padding="8,4"
+                                                            HorizontalOptions="End" />
+                                                </Grid>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+
+                                <CollectionView.EmptyView>
+                                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                                        <Label Text="No Agents Found"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="Gray" />
+                                    </VerticalStackLayout>
+                                </CollectionView.EmptyView>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Shown when an API tab is active but no form has been built for that provider yet -
+                     same fallback idea as WorkInProgress.xaml, used per AgentGroupType in AppShell. -->
+                <VerticalStackLayout Padding="30" Spacing="15" IsVisible="{Binding IsUnsupportedApiTabActive}">
+                    <Label
+                        Text="This is a work in progress."
+                        Style="{StaticResource Headline}"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- ============================= API (Gemini) tab ============================= -->
+                <VerticalStackLayout Spacing="20" IsVisible="{Binding IsGeminiTabActive}">
+
+                    <!-- Add / Edit a Gemini Agent. One form serves both: Edit on a row fills it in and
+                         flips the button over to Save Changes - see EditingGeminiAgentId in the code-behind. -->
+                    <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                            Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+
+                        <Border x:Name="GeminiAgentFormSection"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label
+                                    Text="{Binding GeminiAgentFormHeading}"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <Label
+                                    Text="Name:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding GeminiAgentName}"
+                                    Placeholder="e.g., Science Fiction Novelist"
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    Keyboard="Text"
+                                    MaxLength="100" />
+
+                                <Label
+                                    Text="Group:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding AgentGroupTypeOptions}"
+                                        SelectedItem="{Binding SelectedGeminiAgentGroupTypeDescription, Mode=TwoWay}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <Label
+                                    Text="Model:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding GeminiModelOptions}"
+                                        SelectedItem="{Binding GeminiAgentModel, Mode=TwoWay}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <Label FontSize="11" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                    <Label.Text>
+                                        <Binding Path="GeminiModelsAsOf" StringFormat="Model list as of: {0}" />
+                                    </Label.Text>
+                                </Label>
+
+                                <Label
+                                    Text="System Instructions:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Editor
+                                    Text="{Binding GeminiAgentSystemInstructions}"
+                                    Placeholder="Describe how this agent should behave when generating a response."
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="150" />
+
+                                <Label
+                                    Text="Max Tokens:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Entry
+                                    Text="{Binding GeminiAgentMaxTokens}"
+                                    Placeholder="2048"
+                                    BackgroundColor="White"
+                                    TextColor="Black"
+                                    Keyboard="Numeric" />
+
+                                <Label
+                                    Text="Thinking Level:"
+                                    FontAttributes="Bold"
+                                    TextColor="Black" />
+
+                                <Picker ItemsSource="{Binding GeminiThinkingLevelOptions}"
+                                        SelectedItem="{Binding GeminiAgentThinkingLevel, Mode=TwoWay}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Grid.Column="0"
+                                            Text="{Binding SaveGeminiAgentButtonText}"
+                                            Clicked="OnSaveGeminiAgent"
+                                            IsEnabled="{Binding CanSaveGeminiAgent}"
+                                            BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                            TextColor="White" />
+
+                                    <Button Grid.Column="1"
+                                            Text="Cancel"
+                                            Clicked="OnCancelEditGeminiAgent"
+                                            IsVisible="{Binding IsEditingGeminiAgent}"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}"
+                                            TextColor="White"
+                                            Padding="15,8" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Border>
+
+                    <!-- Gemini Agent Collection Grid -->
+                    <Border x:Name="GeminiAgentCollectionGrid"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                            Stroke="DarkGray"
+                            StrokeThickness="1"
+                            Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="15">
+                            <CollectionView x:Name="GeminiAgentCollectionView"
+                                            ItemsSource="{Binding GeminiAgentModels}"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}">
+                                <CollectionView.ItemsLayout>
+                                    <GridItemsLayout Orientation="Vertical"
+                                                     Span="2"
+                                                     HorizontalItemSpacing="10"
+                                                     VerticalItemSpacing="10" />
+                                </CollectionView.ItemsLayout>
+
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="queries:GeminiAgentViewModel">
+                                        <Border BackgroundColor="{AppThemeBinding Light=WhiteSmoke, Dark=Gray}"
+                                                Stroke="{AppThemeBinding Light=LightGray, Dark=DarkGray}"
+                                                StrokeThickness="1"
+                                                Padding="15">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+
+                                            <VerticalStackLayout Spacing="8">
+                                                <!-- Name -->
+                                                <Label Text="{Binding Name}"
+                                                       FontSize="16"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+
+                                                <!-- Group -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="GroupType" StringFormat="Group: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Model -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="Model" StringFormat="Model: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- System Instructions (truncated) -->
+                                                <Label FontSize="12"
+                                                       TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"
+                                                       MaxLines="3"
+                                                       LineBreakMode="TailTruncation"
+                                                       Text="{Binding SystemInstructions}" />
+
+                                                <!-- Max Tokens -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="MaxTokens" StringFormat="Max Tokens: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Thinking Level -->
+                                                <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                    <Label.Text>
+                                                        <Binding Path="ThinkingLevel" StringFormat="Thinking Level: {0}" />
+                                                    </Label.Text>
+                                                </Label>
+
+                                                <!-- Action Buttons -->
+                                                <Grid ColumnSpacing="10">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Button Grid.Column="1"
+                                                            Text="Edit"
+                                                            Clicked="OnEditGeminiAgent"
+                                                            BackgroundColor="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}"
+                                                            TextColor="White"
+                                                            FontSize="12"
+                                                            Padding="8,4"
+                                                            HorizontalOptions="End" />
+
+                                                    <Button Grid.Column="2"
+                                                            Text="Delete"
+                                                            Clicked="OnDeleteGeminiAgent"
+                                                            BackgroundColor="Red"
+                                                            TextColor="White"
+                                                            FontSize="12"
+                                                            Padding="8,4"
+                                                            HorizontalOptions="End" />
+                                                </Grid>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+
+                                <CollectionView.EmptyView>
+                                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                                        <Label Text="No Agents Found"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="Gray" />
+                                    </VerticalStackLayout>
+                                </CollectionView.EmptyView>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </ContentPage.Content>
+</ContentPage>

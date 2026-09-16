@@ -14,7 +14,8 @@ public class MainSettingQueryHandlers(
     public Result<LocalLlmFilePathsViewModel> Handle(GetLocalLlmFilePaths query)
     {
         var itemsVm = localLlmStore.GetAll()
-            .Select(x => new LocalLlmFilePathViewModel(x.Id, x.Name, x.FullFilePath))
+            .Select(x => new LocalLlmFilePathViewModel(
+                x.Id, x.Name, x.FullFilePath, x.ContextSize, x.GpuLayerCount))
             .ToArray();
 
         var vm = new LocalLlmFilePathsViewModel(itemsVm);

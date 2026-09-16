@@ -10,7 +10,7 @@ public class LlamaModelQueryHandlers(LlamaModelProvider llamaModelProvider) : IA
 {
     public async Task<Result<ModelLoadedResponse>> HandleAsync(LoadLlamaModel query)
     {
-        await Task.Run(() => llamaModelProvider.GetOrLoad(query.ModelPath));
+        await Task.Run(() => llamaModelProvider.GetOrLoad(query.ModelPath, query.ContextSize, query.GpuLayerCount));
 
         return Result.Ok(new ModelLoadedResponse(query.ModelPath));
     }

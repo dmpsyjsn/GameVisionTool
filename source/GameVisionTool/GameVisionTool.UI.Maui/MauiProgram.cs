@@ -36,7 +36,11 @@ public static class MauiProgram
             })
             .Logging.AddSerilog(Log.Logger);
 
-        builder.Services.Bootstrap();
+#if WINDOWS
+        Platforms.Windows.EditorScrollBars.Enable();
+#endif
+
+        builder.Services.Bootstrap(FileSystem.AppDataDirectory);
 
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
@@ -72,7 +76,7 @@ public static class MauiProgram
             .Enrich.FromLogContext()
             .Enrich.WithProperty("Application", "GameVisionTool")
             .WriteTo.File(
-                Path.Combine(AppContext.BaseDirectory, "logs", "log-.txt"),
+                Path.Combine(FileSystem.AppDataDirectory, "logs", "log-.txt"),
                 rollingInterval: RollingInterval.Day)
             .CreateLogger();
     }

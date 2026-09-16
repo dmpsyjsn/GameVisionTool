@@ -2,11 +2,18 @@
 
 namespace GameVisionTool.Messages.Commands.MainSettings;
 
-public class AddOrUpdateLocalLlmPath(Guid id, string name, string fullFilePath) : ICommand<Guid>
+public class AddOrUpdateLocalLlmPath(
+    Guid id,
+    string name,
+    string fullFilePath,
+    uint contextSize = 32768,
+    int gpuLayerCount = -1) : ICommand<Guid>
 {
     public Guid Id { get; } = id;
     public string Name { get; } = name;
     public string FullFilePath { get; } = fullFilePath; // Should include the file name and extension
+    public uint ContextSize { get; } = contextSize;
+    public int GpuLayerCount { get; } = gpuLayerCount;
 }
 
 public class RemoveLocalLlmPath(Guid id) : ICommand

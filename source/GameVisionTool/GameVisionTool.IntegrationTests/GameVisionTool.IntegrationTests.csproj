@@ -9,6 +9,9 @@
   <ItemGroup>
     <PackageReference Include="LiteDB" Version="5.0.21" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <!-- The policy tests use Serilog's IDestructuringPolicy and LogEventPropertyValue directly, so
+         the package is declared here rather than relied on transitively through Logic. -->
+    <PackageReference Include="Serilog" Version="4.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

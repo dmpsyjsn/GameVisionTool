@@ -8,7 +8,7 @@
     Shell.FlyoutBehavior="Disabled"
     Title="GameVisionTool.UI.Maui">
 
-    <TabBar>
+    <TabBar x:Name="MainTabBar">
         <ShellContent
             Title="Home"
             Icon="home.png"
@@ -21,16 +21,20 @@
             ContentTemplate="{DataTemplate views:Ideas}"
             Route="Ideas" />
 
-        <ShellContent
-            Title="Backstory"
-            ContentTemplate="{DataTemplate views:Backstory}"
-            Route="Backstory" />
+        <!-- One tab per AgentGroupType is inserted here at runtime - see AppShell.xaml.cs. Each
+             uses its matching Views type (e.g. Backstory) if one exists, otherwise falls back to
+             WorkInProgress. -->
 
         <ShellContent
             Title="Settings"
             Icon="main_settings.jpg"
             ContentTemplate="{DataTemplate views:MainSettings}"
             Route="Settings" />
+
+        <ShellContent
+            Title="Agents"
+            ContentTemplate="{DataTemplate views:Agents}"
+            Route="Agents" />
     </TabBar>
 
 </Shell>

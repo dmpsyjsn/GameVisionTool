@@ -46,6 +46,37 @@ namespace GameVisionTool.IntegrationTests.Application.CommandHandlerTests.MainSe
         }
 
         [Fact]
+        public void Test_Add_Local_Llm_Path_Defaults_Load_Settings_When_Not_Specified()
+        {
+            var id = Guid.NewGuid();
+
+            _mainSettingHandlers.Handle(new AddOrUpdateLocalLlmPath(
+                id, StringHelpers.GenerateRandomString(), StringHelpers.GenerateRandomString()));
+
+            var item = _localLlmDataStore.GetByIdOrDefault(id);
+
+            Assert.NotNull(item);
+            Assert.Equal(32768u, item.ContextSize);
+            Assert.Equal(-1, item.GpuLayerCount);
+        }
+
+        [Fact]
+        public void Test_Add_Local_Llm_Path_Stores_Explicit_Load_Settings()
+        {
+            var id = Guid.NewGuid();
+
+            _mainSettingHandlers.Handle(new AddOrUpdateLocalLlmPath(
+                id, StringHelpers.GenerateRandomString(), StringHelpers.GenerateRandomString(),
+                contextSize: 8192, gpuLayerCount: 20));
+
+            var item = _localLlmDataStore.GetByIdOrDefault(id);
+
+            Assert.NotNull(item);
+            Assert.Equal(8192u, item.ContextSize);
+            Assert.Equal(20, item.GpuLayerCount);
+        }
+
+        [Fact]
         public void Test_Add_Local_Llm_Path_Stamps_Timestamps()
         {
             var id = Guid.NewGuid();

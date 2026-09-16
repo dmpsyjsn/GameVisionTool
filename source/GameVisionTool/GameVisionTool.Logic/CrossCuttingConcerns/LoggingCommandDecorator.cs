@@ -15,7 +15,10 @@ public class LoggingCommandDecoratorAsync<TCommand, TResult>(IAsyncCommandHandle
         {
             var watch = Stopwatch.StartNew();
 
-            Logger.Debug("Timer for {@command} started", command);
+            var name = command.GetType().Name;
+
+            Logger.Debug("Timer for {@command} started", name);
+            Logger.Debug("Content for {@command}: {@content}", name, command);
 
             var result = await decorated.HandleAsync(command);
 
@@ -23,9 +26,9 @@ public class LoggingCommandDecoratorAsync<TCommand, TResult>(IAsyncCommandHandle
 
             watch.Stop();
 
-            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", command, watch.ElapsedMilliseconds);
+            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", name, watch.ElapsedMilliseconds);
 
-            Logger.Debug("End command {@command}", command);
+            Logger.Debug("End command {@command}", name);
 
             return result;
         }
@@ -47,7 +50,10 @@ public class LoggingCommandDecoratorAsync<TCommand>(IAsyncCommandHandler<TComman
         {
             var watch = Stopwatch.StartNew();
 
-            Logger.Debug("Timer for {@command} started", command);
+            var name = command.GetType().Name;
+
+            Logger.Debug("Timer for {@command} started", name);
+            Logger.Debug("Content for {@command}: {@content}", name, command);
 
             var result = await decorated.HandleAsync(command);
 
@@ -55,9 +61,9 @@ public class LoggingCommandDecoratorAsync<TCommand>(IAsyncCommandHandler<TComman
 
             watch.Stop();
 
-            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", command, watch.ElapsedMilliseconds);
+            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", name, watch.ElapsedMilliseconds);
 
-            Logger.Debug("End command {@command}", command);
+            Logger.Debug("End command {@command}", name);
 
             return result;
         }
@@ -78,8 +84,11 @@ public class LoggingCommandDecorator<TCommand, TResult>(ICommandHandler<TCommand
         try
         {
             var watch = Stopwatch.StartNew();
+            
+            var name = command.GetType().Name;
 
-            Logger.Debug("Timer for {@command} started", command);
+            Logger.Debug("Timer for {@command} started", name);
+            Logger.Debug("Content for {@command}: {@content}", name, command);
 
             var result = decorated.Handle(command);
 
@@ -87,9 +96,9 @@ public class LoggingCommandDecorator<TCommand, TResult>(ICommandHandler<TCommand
 
             watch.Stop();
 
-            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", command, watch.ElapsedMilliseconds);
+            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", name, watch.ElapsedMilliseconds);
 
-            Logger.Debug("End command {@command}", command);
+            Logger.Debug("End command {@command}", name);
 
             return result;
         }
@@ -110,8 +119,11 @@ public class LoggingCommandDecorator<TCommand>(ICommandHandler<TCommand> decorat
         try
         {
             var watch = Stopwatch.StartNew();
-
-            Logger.Debug("Timer for {@command} started", command);
+            
+            var name = command.GetType().Name;
+            
+            Logger.Debug("Timer for {@command} started", name);
+            Logger.Debug("Content for {@command}: {@content}", name, command);
 
             var result = decorated.Handle(command);
 
@@ -119,9 +131,9 @@ public class LoggingCommandDecorator<TCommand>(ICommandHandler<TCommand> decorat
 
             watch.Stop();
 
-            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", command, watch.ElapsedMilliseconds);
+            Logger.Information("Processed {@command} in a total of {@elapsedMilliseconds} ms", name, watch.ElapsedMilliseconds);
 
-            Logger.Debug("End command {@command}", command);
+            Logger.Debug("End command {@command}", name);
 
             return result;
         }

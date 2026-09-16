@@ -1,3 +1,4 @@
+using GameVisionTool.Integration.GoogleGemini;
 using GameVisionTool.Integration.LlamaSharp;
 using GameVisionTool.Logic.Common;
 using GameVisionTool.Persistence.LiteDb;
@@ -7,10 +8,11 @@ namespace GameVisionTool.Logic.CompositionRoot;
 
 internal static class ConfigureServices
 {
-    internal static IServiceCollection RegisterOtherServices(this IServiceCollection services)
+    internal static IServiceCollection RegisterOtherServices(this IServiceCollection services, string databaseDirectory)
     {
-        services.AddLiteDbPersistence();
+        services.AddLiteDbPersistence(databaseDirectory);
         services.AddLlama();
+        services.AddGoogleGemini();
         services.AddSingleton<IDataStoreProcessor, DynamicDataStoreProcessor>();
 
         return services;
