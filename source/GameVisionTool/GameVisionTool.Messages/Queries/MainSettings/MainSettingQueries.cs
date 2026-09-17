@@ -10,11 +10,18 @@ public class LocalLlmFilePathsViewModel(LocalLlmFilePathViewModel[] items)
     public LocalLlmFilePathViewModel[] Items { get; } = items;
 }
 
-public class LocalLlmFilePathViewModel(Guid id, string name, string fullFilePath)
+public class LocalLlmFilePathViewModel(
+    Guid id,
+    string name,
+    string fullFilePath,
+    uint contextSize,
+    int gpuLayerCount)
 {
     public Guid Id { get; } = id;
     public string Name { get; } = name;
     public string FullFilePath { get; } = fullFilePath;
+    public uint ContextSize { get; } = contextSize;
+    public int GpuLayerCount { get; } = gpuLayerCount;
 }
 
 #endregion

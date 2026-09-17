@@ -91,6 +91,26 @@
                                         TextColor="Black"
                                         Keyboard="Text"
                                         MaxLength="100" />
+
+                                    <!-- Model-load parameters that used to be hardcoded constants.
+                                         These only take effect the next time this model is loaded.
+                                         Generation params (Max Tokens, Temperature) live on the Agent
+                                         instead - see the Agents tab. -->
+                                    <Label Text="Context Size:" FontAttributes="Bold" TextColor="Black" />
+                                    <Entry
+                                        Text="{Binding LocalLlmContextSize}"
+                                        Placeholder="32768"
+                                        BackgroundColor="White"
+                                        TextColor="Black"
+                                        Keyboard="Numeric" />
+
+                                    <Label Text="GPU Layer Count (-1 = all):" FontAttributes="Bold" TextColor="Black" />
+                                    <Entry
+                                        Text="{Binding LocalLlmGpuLayerCount}"
+                                        Placeholder="-1"
+                                        BackgroundColor="White"
+                                        TextColor="Black"
+                                        Keyboard="Text" />
                                 </VerticalStackLayout>
 
                                 <!-- Save Button -->
@@ -241,11 +261,23 @@
                                                    TextColor="{AppThemeBinding Light=Black, Dark=White}" />
 
                                             <!-- File Path (truncated) -->
-                                            <Label FontSize="12" 
+                                            <Label FontSize="12"
                                                    TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"
                                                    LineBreakMode="TailTruncation">
                                                 <Label.Text>
                                                     <Binding Path="FullFilePath" StringFormat="Path: {0}" />
+                                                </Label.Text>
+                                            </Label>
+
+                                            <!-- Model-load and generation parameters saved for this entry -->
+                                            <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                <Label.Text>
+                                                    <Binding Path="ContextSize" StringFormat="Context Size: {0}" />
+                                                </Label.Text>
+                                            </Label>
+                                            <Label FontSize="12" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                                <Label.Text>
+                                                    <Binding Path="GpuLayerCount" StringFormat="GPU Layers: {0}" />
                                                 </Label.Text>
                                             </Label>
 

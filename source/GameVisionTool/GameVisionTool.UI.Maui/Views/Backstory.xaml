@@ -6,6 +6,7 @@
              xmlns:views="using:GameVisionTool.UI.Maui.Views"
              xmlns:ideas="clr-namespace:GameVisionTool.Messages.Queries.Ideas;assembly=GameVisionTool.Messages"
              xmlns:mainSettings="clr-namespace:GameVisionTool.Messages.Queries.MainSettings;assembly=GameVisionTool.Messages"
+             xmlns:agents="clr-namespace:GameVisionTool.Messages.Queries.Agents;assembly=GameVisionTool.Messages"
              x:Class="GameVisionTool.UI.Maui.Views.Backstory"
              x:DataType="views:Backstory">
     <ContentPage.Content>
@@ -16,8 +17,7 @@
                     Style="{StaticResource Headline}"
                     HorizontalOptions="Center" />
 
-                <!-- Source selection. API LLMs are deliberately left out for now: only local .gguf
-                     models are offered here. -->
+                <!-- Source selection. -->
                 <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
                         Padding="15">
                     <Border.StrokeShape>
@@ -26,8 +26,9 @@
 
                     <Grid ColumnSpacing="15">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="0.5*" />
-                            <ColumnDefinition Width="0.5*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Idea -->
@@ -70,8 +71,8 @@
                             </VerticalStackLayout>
                         </Border>
 
-                        <!-- Local LLM -->
-                        <Border x:Name="LocalLlmSelectionColumn"
+                        <!-- LLM. Which picker is shown follows the provider tabs above. -->
+                        <Border x:Name="LlmSelectionColumn"
                                 Grid.Column="1"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
                                 Stroke="Black"
@@ -83,56 +84,184 @@
 
                             <VerticalStackLayout Padding="20" Spacing="20">
                                 <Label
-                                    Text="Local LLM"
+                                    Text="LLM"
                                     Style="{StaticResource Headline}"
                                     HorizontalOptions="Center" />
 
-                                <Label
-                                    Text="Select a Model:"
-                                    FontAttributes="Bold"
-                                    TextColor="Black" />
+                                <!-- Provider tabs. IsApiTabSelected/IsLocalTabSelected decides which
+                                     picker is shown here and in the Agent column, and which provider
+                                     Generate runs against; the API side is one button per ApiLlmType,
+                                     looped from ApiLlmTabOptions - same mechanism as Agents.xaml. -->
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                                <Picker ItemsSource="{Binding LocalLlmModels}"
-                                        ItemDisplayBinding="{Binding Name, x:DataType=mainSettings:LocalLlmFilePathViewModel}"
-                                        SelectedItem="{Binding SelectedLocalLlm, Mode=TwoWay}"
-                                        Title="-- Select Local LLM --"
-                                        IsEnabled="{Binding CanSelectLocalLlm}"
-                                        BackgroundColor="White"
+                                    <Button Grid.Column="0"
+                                            Text="Local"
+                                            Clicked="OnSelectLocalTab"
+                                            TextColor="White">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding IsLocalTabSelected}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <HorizontalStackLayout Grid.Column="1"
+                                                           x:Name="ApiTabButtonsLayout"
+                                                           Spacing="10"
+                                                           BindableLayout.ItemsSource="{Binding ApiLlmTabOptions}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="views:ApiLlmTabOption">
+                                                <Button Text="{Binding Description}"
+                                                        Clicked="OnSelectApiTab"
+                                                        TextColor="White"
+                                                        BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}" />
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </HorizontalStackLayout>
+                                </Grid>
+
+                                <!-- Local -->
+                                <VerticalStackLayout Spacing="20" IsVisible="{Binding IsLocalTabSelected}">
+                                    <Label
+                                        Text="Select a Model:"
+                                        FontAttributes="Bold"
                                         TextColor="Black" />
 
-                                <!-- The picker is disabled while the weights load, which takes long
-                                     enough to look like a hang without something saying so. -->
-                                <HorizontalStackLayout Spacing="10"
-                                                       IsVisible="{Binding IsLoadingModel}">
-                                    <ActivityIndicator IsRunning="{Binding IsLoadingModel}"
-                                                       HeightRequest="16"
-                                                       WidthRequest="16"
-                                                       Color="{AppThemeBinding Light=Black, Dark=White}" />
-                                    <Label Text="Loading model..."
-                                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                                           FontAttributes="Italic"
-                                           VerticalOptions="Center" />
-                                </HorizontalStackLayout>
+                                    <Picker ItemsSource="{Binding LocalLlmModels}"
+                                            ItemDisplayBinding="{Binding Name, x:DataType=mainSettings:LocalLlmFilePathViewModel}"
+                                            SelectedItem="{Binding SelectedLocalLlm, Mode=TwoWay}"
+                                            Title="-- Select Local LLM --"
+                                            IsEnabled="{Binding CanSelectLocalLlm}"
+                                            BackgroundColor="White"
+                                            TextColor="Black" />
 
-                                <Label
-                                    Text="Model File:"
-                                    FontAttributes="Bold"
-                                    IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
-                                    TextColor="Black" />
+                                    <!-- The picker is disabled while the weights load, which takes long
+                                         enough to look like a hang without something saying so. -->
+                                    <HorizontalStackLayout Spacing="10"
+                                                           IsVisible="{Binding IsLoadingModel}">
+                                        <ActivityIndicator IsRunning="{Binding IsLoadingModel}"
+                                                           HeightRequest="16"
+                                                           WidthRequest="16"
+                                                           Color="{AppThemeBinding Light=Black, Dark=White}" />
+                                        <Label Text="Loading model..."
+                                               TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                               FontAttributes="Italic"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
 
-                                <Label
-                                    Text="{Binding SelectedLocalLlmFilePath}"
-                                    IsVisible="{Binding SelectedLocalLlmFilePath, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
-                                    FontFamily="Consolas"
-                                    FontSize="12"
-                                    BackgroundColor="White"
-                                    Padding="10"
-                                    TextColor="Black"
-                                    LineBreakMode="TailTruncation" />
+                                    <Label
+                                        Text="No local LLMs yet. Add one on the Settings tab."
+                                        IsVisible="{Binding HasLocalLlms, Converter={toolkit:InvertedBoolConverter}}"
+                                        TextColor="Gray"
+                                        FontAttributes="Italic" />
+                                </VerticalStackLayout>
 
+                                <!-- API -->
+                                <VerticalStackLayout Spacing="20" IsVisible="{Binding IsGeminiTabActive}">
+                                    <Label
+                                        Text="Select an API:"
+                                        FontAttributes="Bold"
+                                        TextColor="Black" />
+
+                                    <Picker ItemsSource="{Binding ApiLlmSettingModels}"
+                                            ItemDisplayBinding="{Binding Type, x:DataType=mainSettings:ApiLlmSettingViewModel}"
+                                            SelectedItem="{Binding SelectedApiLlmSetting, Mode=TwoWay}"
+                                            Title="-- Select API LLM --"
+                                            IsEnabled="{Binding CanSelectApiLlmSetting}"
+                                            BackgroundColor="White"
+                                            TextColor="Black" />
+
+                                    <Label
+                                        Text="No API keys yet. Add one on the Settings tab."
+                                        IsVisible="{Binding HasApiLlmSettings, Converter={toolkit:InvertedBoolConverter}}"
+                                        TextColor="Gray"
+                                        FontAttributes="Italic" />
+                                </VerticalStackLayout>
+
+                                <!-- Any ApiLlmType without a form yet - see IsUnsupportedApiTabActive. -->
                                 <Label
-                                    Text="No local LLMs yet. Add one on the Settings tab."
-                                    IsVisible="{Binding HasLocalLlms, Converter={toolkit:InvertedBoolConverter}}"
+                                    Text="No options available for this provider yet."
+                                    IsVisible="{Binding IsUnsupportedApiTabActive}"
+                                    TextColor="Gray"
+                                    FontAttributes="Italic" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Agent. Only agents in the Backstory group are offered - a Character agent's
+                             system prompt is written for a different task. -->
+                        <Border x:Name="AgentSelectionColumn"
+                                Grid.Column="2"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
+                                Stroke="Black"
+                                StrokeThickness="2"
+                                Padding="10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="5" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Padding="20" Spacing="20">
+                                <Label
+                                    Text="Agent"
+                                    Style="{StaticResource Headline}"
+                                    HorizontalOptions="Center" />
+
+                                <!-- Local (Llama) -->
+                                <VerticalStackLayout Spacing="20" IsVisible="{Binding IsLocalTabSelected}">
+                                    <Label
+                                        Text="Select an Agent:"
+                                        FontAttributes="Bold"
+                                        TextColor="Black" />
+
+                                    <Picker ItemsSource="{Binding LlamaAgentModels}"
+                                            ItemDisplayBinding="{Binding Name, x:DataType=agents:AgentViewModel}"
+                                            SelectedItem="{Binding SelectedLlamaAgent, Mode=TwoWay}"
+                                            Title="-- Select Agent --"
+                                            IsEnabled="{Binding CanSelectLlamaAgent}"
+                                            BackgroundColor="White"
+                                            TextColor="Black" />
+
+                                    <Label
+                                        Text="No backstory agents yet. Add one on the Agents tab."
+                                        IsVisible="{Binding HasLlamaAgents, Converter={toolkit:InvertedBoolConverter}}"
+                                        TextColor="Gray"
+                                        FontAttributes="Italic" />
+                                </VerticalStackLayout>
+
+                                <!-- API (Gemini) -->
+                                <VerticalStackLayout Spacing="20" IsVisible="{Binding IsGeminiTabActive}">
+                                    <Label
+                                        Text="Select an Agent:"
+                                        FontAttributes="Bold"
+                                        TextColor="Black" />
+
+                                    <Picker ItemsSource="{Binding GeminiAgentModels}"
+                                            ItemDisplayBinding="{Binding Name, x:DataType=agents:GeminiAgentViewModel}"
+                                            SelectedItem="{Binding SelectedGeminiAgent, Mode=TwoWay}"
+                                            Title="-- Select Agent --"
+                                            IsEnabled="{Binding CanSelectGeminiAgent}"
+                                            BackgroundColor="White"
+                                            TextColor="Black" />
+
+                                    <Label
+                                        Text="No backstory agents yet. Add one on the Agents tab."
+                                        IsVisible="{Binding HasGeminiAgents, Converter={toolkit:InvertedBoolConverter}}"
+                                        TextColor="Gray"
+                                        FontAttributes="Italic" />
+                                </VerticalStackLayout>
+
+                                <!-- Any ApiLlmType without a form yet - see IsUnsupportedApiTabActive. -->
+                                <Label
+                                    Text="No options available for this provider yet."
+                                    IsVisible="{Binding IsUnsupportedApiTabActive}"
                                     TextColor="Gray"
                                     FontAttributes="Italic" />
                             </VerticalStackLayout>
@@ -140,16 +269,33 @@
                     </Grid>
                 </Border>
 
-                <!-- Brief and generation. The brief is passed through as the user turn; the
-                     novelist persona and the standing style rules live in the agent's system
-                     prompt, not here. -->
+                <!-- Local and Gemini both have a generation path; any other ApiLlmType gets this note
+                     instead of the Brief/Generate section below, same fallback idea as
+                     WorkInProgress.xaml. -->
                 <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
-                        Padding="15">
+                        Padding="30"
+                        IsVisible="{Binding IsUnsupportedApiTabActive}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="10" />
                     </Border.StrokeShape>
 
-                    <!-- Same inner panel as the Idea and Local LLM columns, so the section reads as
+                    <Label
+                        Text="This is a work in progress."
+                        Style="{StaticResource Headline}"
+                        HorizontalTextAlignment="Center" />
+                </Border>
+
+                <!-- Brief and generation. The brief is passed through as the user turn; the
+                     novelist persona and the standing style rules live in the agent's system
+                     prompt, not here. -->
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}"
+                        Padding="15"
+                        IsVisible="{Binding IsGenerationSupported}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
+
+                    <!-- Same inner panel as the Idea and LLM columns, so the section reads as
                          part of the same page in both themes. -->
                     <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
                             Stroke="Black"
@@ -172,11 +318,73 @@
 
                             <Editor
                                 Text="{Binding BackstoryBrief}"
-                                Placeholder="Leave blank to let the model invent a character of its own."
+                                Placeholder="Please add a backstory"
                                 IsEnabled="{Binding CanEditBrief}"
                                 HeightRequest="120"
                                 BackgroundColor="White"
                                 TextColor="Black" />
+
+                            <!-- Pre-filled from the selected agent's saved defaults; edit here to
+                                 override for just this generation. -->
+
+                            <!-- Full width rather than sharing the row below: a model is a bigger
+                                 choice than the knobs, and the Local tab has nothing to pair it with. -->
+                            <VerticalStackLayout Spacing="5" IsVisible="{Binding IsGeminiTabActive}">
+                                <Label Text="Model:" FontAttributes="Bold" TextColor="Black" />
+                                <Picker
+                                    ItemsSource="{Binding ModelOptions}"
+                                    SelectedItem="{Binding ModelInput, Mode=TwoWay}"
+                                    IsEnabled="{Binding CanEditBrief}"
+                                    BackgroundColor="White"
+                                    TextColor="Black" />
+                                <Label FontSize="11" TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}">
+                                    <Label.Text>
+                                        <Binding Path="ModelsAsOf" StringFormat="Model list as of: {0}" />
+                                    </Label.Text>
+                                </Label>
+                            </VerticalStackLayout>
+
+                            <Grid ColumnSpacing="15">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="0.5*" />
+                                    <ColumnDefinition Width="0.5*" />
+                                </Grid.ColumnDefinitions>
+
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="Max Tokens:" FontAttributes="Bold" TextColor="Black" />
+                                    <Entry
+                                        Text="{Binding MaxTokensInput}"
+                                        IsEnabled="{Binding CanEditBrief}"
+                                        Keyboard="Numeric"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+                                </VerticalStackLayout>
+
+                                <!-- Temperature and Thinking Level share this slot: Gemini 3.x ignores
+                                     temperature, which is why a Gemini agent carries a thinking level
+                                     instead. -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="5"
+                                                     IsVisible="{Binding IsLocalTabSelected}">
+                                    <Label Text="Temperature:" FontAttributes="Bold" TextColor="Black" />
+                                    <Entry
+                                        Text="{Binding TemperatureInput}"
+                                        IsEnabled="{Binding CanEditBrief}"
+                                        Keyboard="Numeric"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="5"
+                                                     IsVisible="{Binding IsGeminiTabActive}">
+                                    <Label Text="Thinking Level:" FontAttributes="Bold" TextColor="Black" />
+                                    <Picker
+                                        ItemsSource="{Binding ThinkingLevelOptions}"
+                                        SelectedItem="{Binding ThinkingLevelInput, Mode=TwoWay}"
+                                        IsEnabled="{Binding CanEditBrief}"
+                                        BackgroundColor="White"
+                                        TextColor="Black" />
+                                </VerticalStackLayout>
+                            </Grid>
 
                             <Button
                                 Text="Generate Backstory"

@@ -34,6 +34,17 @@ public sealed class SensitiveDataDestructuringPolicy : IDestructuringPolicy
     /// </summary>
     private static readonly string[] SensitiveExactNames = ["key", "apikeys"];
 
+    /// <summary>
+    /// Checked first, and wins over everything below. "token" has to stay a fragment because real
+    /// secrets carry it as a suffix (AccessToken, RefreshToken), but an LLM generation budget
+    /// carries it too: MaxTokens is a length limit, not a credential. Redacting it hid the value
+    /// needed to diagnose a real truncation bug - every response was silently hitting the cap, and
+    /// the log said "***REDACTED***" where the cap should have been.
+    ///
+    /// Exemptions are exact-name only, so an unanticipated "...Token" property still fails closed.
+    /// </summary>
+    private static readonly string[] NonSensitiveExactNames = ["maxtokens", "tokencount"];
+
     // Null value means "this type has nothing sensitive on it" - hand it back to Serilog untouched.
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]?> PropertyCache = new();
 
@@ -99,6 +110,11 @@ public sealed class SensitiveDataDestructuringPolicy : IDestructuringPolicy
 
     private static bool IsSensitiveName(string propertyName)
     {
+        foreach (var exemptName in NonSensitiveExactNames)
+        {
+            if (propertyName.Equals(exemptName, StringComparison.OrdinalIgnoreCase)) return false;
+        }
+
         foreach (var exactName in SensitiveExactNames)
         {
             if (propertyName.Equals(exactName, StringComparison.OrdinalIgnoreCase)) return true;

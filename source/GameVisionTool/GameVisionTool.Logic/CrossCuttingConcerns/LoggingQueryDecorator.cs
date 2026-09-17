@@ -17,7 +17,8 @@ public class LoggingQueryDecorator<TQuery, TResult>(IQueryHandler<TQuery, TResul
 
         var name = query.GetType().Name;
 
-        Logger.Debug("Timer for {@query} started", query);
+        Logger.Debug("Timer for {@query} started", name);
+        Logger.Debug("Content for {@query}: {@content}", name, query);
 
         var result = decorated.Handle(query);
 
@@ -27,7 +28,7 @@ public class LoggingQueryDecorator<TQuery, TResult>(IQueryHandler<TQuery, TResul
 
         Logger.Information("Processed {@query} in a total of {@elapsedMilliseconds} ms", name, watch.ElapsedMilliseconds);
 
-        Logger.Debug("End query {@query}", query);
+        Logger.Debug("End query {@query}", name);
 
         return result;
     }
@@ -44,7 +45,8 @@ public class LoggingQueryDecoratorAsync<TQuery, TResult>(IAsyncQueryHandler<TQue
 
         var name = query.GetType().Name;
 
-        Logger.Debug("Timer for {@query} started", query);
+        Logger.Debug("Timer for {@query} started", name);
+        Logger.Debug("Content for {@query}: {@content}", name, query);
 
         var result = await decorated.HandleAsync(query);
 
@@ -54,7 +56,7 @@ public class LoggingQueryDecoratorAsync<TQuery, TResult>(IAsyncQueryHandler<TQue
 
         Logger.Information("Processed {@query} in a total of {@elapsedMilliseconds} ms", name, watch.ElapsedMilliseconds);
 
-        Logger.Debug("End query {@query}", query);
+        Logger.Debug("End query {@query}", name);
 
         return result;
     }

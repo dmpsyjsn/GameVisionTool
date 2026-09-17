@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GameVisionTool.Common.Domain\GameVisionTool.Common.Domain.csproj" />
     <ProjectReference Include="..\GameVisionTool.Common.Validation\GameVisionTool.Common.Validation.csproj" />
+    <ProjectReference Include="..\GameVisionTool.Integration.GoogleGemini\GameVisionTool.Integration.GoogleGemini.csproj" />
     <ProjectReference Include="..\GameVisionTool.Integration.LlamaSharp\GameVisionTool.Integration.LlamaSharp.csproj" />
     <ProjectReference Include="..\GameVisionTool.Messages\GameVisionTool.Messages.csproj" />
     <ProjectReference Include="..\GameVisionTool.Persistence.LiteDb\GameVisionTool.Persistence.LiteDb.csproj" />

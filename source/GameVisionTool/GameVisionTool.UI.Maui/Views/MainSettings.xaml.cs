@@ -120,7 +120,41 @@ public partial class MainSettings
         }
     } = string.Empty;
 
-    public bool CanAddLocalLlm => !string.IsNullOrEmpty(SelectedLocalLlmFilePath);
+    // Text-backed so the Entry controls can hold an invalid in-progress edit without throwing;
+    // parsed on Add. Defaults match what LlamaParametersGenerator/LlamaScienceFictionBackstoryAgent
+    // used to hardcode.
+    public string LocalLlmContextSize
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanAddLocalLlm));
+            }
+        }
+    } = "32768";
+
+    public string LocalLlmGpuLayerCount
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanAddLocalLlm));
+            }
+        }
+    } = "-1";
+
+    public bool CanAddLocalLlm =>
+        !string.IsNullOrEmpty(SelectedLocalLlmFilePath)
+        && uint.TryParse(LocalLlmContextSize, out _)
+        && int.TryParse(LocalLlmGpuLayerCount, out _);
 
     private async Task LoadLocalLlmGrid()
     {
@@ -180,7 +214,15 @@ public partial class MainSettings
                 return;
             }
 
-            var command = new AddOrUpdateLocalLlmPath(Guid.NewGuid(), LocalLlmName, SelectedLocalLlmFilePath);
+            if (!uint.TryParse(LocalLlmContextSize, out var contextSize)
+                || !int.TryParse(LocalLlmGpuLayerCount, out var gpuLayerCount))
+            {
+                await DisplayAlertAsync("Error", "Context Size and GPU Layer Count must be valid numbers.", "OK");
+                return;
+            }
+
+            var command = new AddOrUpdateLocalLlmPath(
+                Guid.NewGuid(), LocalLlmName, SelectedLocalLlmFilePath, contextSize, gpuLayerCount);
             var result = _commandProcessor.Process(command);
 
             if (result.IsSuccess)
@@ -190,6 +232,8 @@ public partial class MainSettings
                 // Clear the form after successful addition
                 SelectedLocalLlmFilePath = string.Empty;
                 LocalLlmName = string.Empty;
+                LocalLlmContextSize = "32768";
+                LocalLlmGpuLayerCount = "-1";
 
                 await LoadLocalLlmGrid();
                 OnLocalLLMsButtonClicked(sender, e);

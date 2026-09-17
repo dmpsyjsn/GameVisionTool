@@ -19,7 +19,9 @@ public class MainSettingHandlers(
         {
             Id = command.Id,
             Name = command.Name,
-            FullFilePath = command.FullFilePath
+            FullFilePath = command.FullFilePath,
+            ContextSize = command.ContextSize,
+            GpuLayerCount = command.GpuLayerCount
         });
 
         return Result.Ok(command.Id);
