@@ -2,11 +2,18 @@
 
 namespace GameVisionTool.Integration.LlamaSharp;
 
-public sealed class LlamaModelProvider : IDisposable
+public sealed class LlamaModelProvider : ILlamaModelProvider, IDisposable
 {
     private readonly Lock _gate = new();
     private (string ModelPath, uint ContextSize, int GpuLayerCount)? _loaded;
     private LlamaModelGenerator? _current;
+
+    /// <summary>
+    /// Loads the weights without handing them back, so the caller pays the load now instead of on its
+    /// first generation. Off the calling thread because loading is a long blocking native call.
+    /// </summary>
+    public Task EnsureLoaded(string modelPath, uint contextSize, int gpuLayerCount) =>
+        Task.Run(() => GetOrLoad(modelPath, contextSize, gpuLayerCount));
 
     public LLamaWeights GetOrLoad(string modelPath, uint contextSize, int gpuLayerCount)
     {

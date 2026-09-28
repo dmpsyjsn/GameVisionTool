@@ -2,11 +2,11 @@ using GameVisionTool.Common.Domain.Queries;
 using GameVisionTool.Common.Domain.Services;
 using GameVisionTool.Integration.GoogleGemini.Agents;
 using GameVisionTool.Messages.Common;
-using GameVisionTool.Messages.Queries.Backstory.Gemini;
+using GameVisionTool.Messages.Queries.Story.Gemini;
 
-namespace GameVisionTool.Logic.Application.QueryHandlers.Lore.Gemini;
+namespace GameVisionTool.Logic.Application.QueryHandlers.Story.Gemini;
 
-public class GeminiLoreHandlers(IGoogleGeminiAgent geminiAgent) : IAsyncQueryHandler<GetGeminiAgentResponse, GeminiResponse>
+public class GeminiStoryHandlers(IGoogleGeminiAgent geminiAgent) : IAsyncQueryHandler<GetGeminiAgentResponse, GeminiResponse>
 {
     public async Task<Result<GeminiResponse>> HandleAsync(GetGeminiAgentResponse query)
     {

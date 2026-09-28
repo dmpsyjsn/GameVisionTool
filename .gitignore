@@ -412,3 +412,6 @@ secrets.*.json
 # Test run output
 TestResults/
 /source/GameVisionTool/.idea/.idea.GameVisionTool/.idea
+
+# Claude Code local state (memory notes, settings; machine-specific)
+.claude/

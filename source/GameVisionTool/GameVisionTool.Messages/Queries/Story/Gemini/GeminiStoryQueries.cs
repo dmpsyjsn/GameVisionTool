@@ -1,7 +1,7 @@
 using GameVisionTool.Common.Domain.Queries;
 using GameVisionTool.Messages.Common;
 
-namespace GameVisionTool.Messages.Queries.Backstory.Gemini;
+namespace GameVisionTool.Messages.Queries.Story.Gemini;
 
 // Not IAmALlamaSharpQuery: there is no model file on disk to check for, so the LlamaModelFileDecorator
 // deliberately passes this straight through.

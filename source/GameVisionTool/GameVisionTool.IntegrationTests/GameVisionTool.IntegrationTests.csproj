@@ -21,6 +21,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GameVisionTool.Common.Domain\GameVisionTool.Common.Domain.csproj" />
+    <!-- The Llama handler tests name ILlamaAgent and ILlamaModelProvider directly, so the project is
+         declared here rather than relied on transitively through Logic. -->
+    <ProjectReference Include="..\GameVisionTool.Integration.LlamaSharp\GameVisionTool.Integration.LlamaSharp.csproj" />
     <ProjectReference Include="..\GameVisionTool.Logic\GameVisionTool.Logic.csproj" />
     <ProjectReference Include="..\GameVisionTool.Persistence.LiteDb\GameVisionTool.Persistence.LiteDb.csproj" />
   </ItemGroup>
