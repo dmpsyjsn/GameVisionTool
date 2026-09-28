@@ -35,21 +35,6 @@ public sealed class LlamaAgentResponseGenerator : IDisposable
     /// <param name="stopMarker">
     /// The string this agent's system prompt instructs the model to write when it has finished,
     /// registered as a stop sequence so generation actually ends there. Empty disables the mechanism.
-    ///
-    /// The marker is the only reliable brake on a model that does not emit EOS. Three captured
-    /// runaways all had the same shape: a complete answer, then generation carrying on to the token
-    /// cap - writing the user's half of an imaginary conversation, then repeating itself. Nothing in
-    /// the sampler can fix that, because every sampler decides *which* token comes next, never
-    /// *whether* one should. A stop sequence is the only layer that ends the loop rather than
-    /// redecorating it: with DRY active the repetition merely changed from a block repeated verbatim
-    /// 539 times to fifty paraphrases of the same paragraph, over the same 105 seconds and the same
-    /// 8,192 tokens.
-    ///
-    /// Asking for the marker in the prompt without registering it here is the trap, and it has already
-    /// been fallen into: an earlier prompt ended with "**END OF PROFILE**" and nothing watched for it,
-    /// so the model wrote it 539 times. It gave the model a way to *say* it had finished without any
-    /// way to actually stop.
-    ///
     /// Per-agent rather than one constant for the app, because it has to match wording that lives in
     /// the agent's own system prompt. Pick something prose will never contain - the matching is a plain
     /// substring test on decoded text, so a marker like "END" would cut a response off at the first
@@ -59,8 +44,9 @@ public sealed class LlamaAgentResponseGenerator : IDisposable
         LlamaChatSessionGenerator chatSessionGenerator,
         int maxTokens,
         float temperature,
-        string agentSystemPrompt,
-        string stopMarker = "")
+        string agentSystemPrompt, 
+        string stopMarker = "",
+        ChatHistory? chatHistory = null)
     {
         _llamaChatSessionGenerator = chatSessionGenerator;
         _maxTokens = maxTokens;
@@ -84,99 +70,18 @@ public sealed class LlamaAgentResponseGenerator : IDisposable
         {
             MaxTokens = maxTokens,
 
-            // When the context fills, shifting discards from position 0 - where the system prompt
-            // sits. Left at its default of 0 a long revision conversation silently drops the
-            // novelist persona, and the model starts writing wiki summary instead.
             TokensKeep = _llamaChatSessionGenerator.CountTokens(systemPrompt) + SystemPromptTemplateMargin,
 
-            // Only Temperature comes from the agent - LlamaSamplingPipeline owns the rest, and is
-            // DefaultSamplingPipeline's chain with a DRY sampler added. The two repetition guards it
-            // carries cover different distances, which is why it keeps both: RepeatPenalty scores
-            // single tokens over a 64-token window, DRY matches repeated sequences across the whole
-            // context. A paragraph reproduced verbatim pages later is invisible to the first and is
-            // exactly what the second is for.
             SamplingPipeline = new LlamaSamplingPipeline
             {
                 Temperature = temperature,
             },
 
-            // The agent's stop marker, or nothing when it has none.
-            //
-            // This is deliberately not a guess at a turn delimiter. An earlier "User:" anti-prompt was
-            // removed because it never fired - PromptTemplateTransformer renders turns as the model's
-            // own special tokens, so that string never marks a boundary - and because it would have
-            // cut short any response that happened to contain the word. The runaways emitted no
-            // delimiter at all, only prose impersonating one, so there was nothing to match on.
-            //
-            // A marker the system prompt asks for is the opposite case: a string chosen precisely
-            // because it appears nowhere else, that the model has been told to write, and that the
-            // executor is now told to stop on.
             AntiPrompts = HasStopMarker ? [_stopMarker] : [],
         };
     }
 
     private bool HasStopMarker => _stopMarker.Length > 0;
-
-    /// <summary>
-    /// Reports an agent with no stop marker. Not an error - it is the setting every agent started with,
-    /// and a model that ends its turn cleanly never needs one - but it is the difference between a
-    /// runaway that stops and one that fills the token cap, so it is worth a line in the log when a
-    /// generation later turns out to have been cut off.
-    /// </summary>
-    private void WarnIfNoStopMarker()
-    {
-        if (HasStopMarker)
-            return;
-
-        Log.Debug(
-            "This agent has no stop marker, so the only thing that can end generation is the model emitting " +
-            "end-of-turn. If it does not, generation runs to the {MaxTokens} token cap and repeats itself to " +
-            "get there. Give the agent a stop marker and tell its system prompt to end with it",
-            _maxTokens);
-    }
-    
-    /// <summary>
-    /// Reports an agent whose Suppress Thinking is on against a model that has no idea what
-    /// <c>&lt;think&gt;</c> is. The prefill then lands as ordinary text exactly where the model's reply
-    /// should begin, and the failure it causes is invisible downstream: the tags never appear in the
-    /// generated text either way, so nothing about the response distinguishes this from a clean run.
-    /// Checked here, before generating, rather than inferred afterwards.
-    ///
-    /// A warning rather than a throw. The model usually still answers - what it then fails to do is
-    /// stop, so the usable answer arrives with pages of runaway generation stapled to it. Discarding
-    /// that would be worse than handing it over with the reason logged.
-    /// </summary>
-    private void WarnIfThinkingPrefillIsWasted()
-    {
-        if (!_llamaChatSessionGenerator.SuppressThinking || _llamaChatSessionGenerator.ModelUsesThinkingTags)
-            return;
-
-        Log.Warning(
-            "This agent has Suppress Thinking on, but the loaded model does not use {ThinkTag} tags - its chat " +
-            "template never writes one and its tokenizer does not carry one. The prefill is stray text where the " +
-            "reply should start, which can leave the model generating past the end of its turn and repeating " +
-            "itself until it hits the {MaxTokens} token cap. Turn Suppress Thinking off for this agent.",
-            ThinkOpenTag,
-            _maxTokens);
-    }
-
-    /// <summary>
-    /// Rewrites CRLF and lone CR to LF. Applied to every piece of text on its way into the model,
-    /// because MAUI's <c>Editor</c> on Windows ends lines with a bare CR and nothing downstream fixes
-    /// it - a system prompt typed as structured markdown arrives as one run-on blob.
-    ///
-    /// It matters more than a stray control character usually would, because of how byte-level BPE
-    /// treats the two. In this Mistral vocabulary LF appears in 1,069 tokens, merged into the forms
-    /// that carry document structure - a newline, a paragraph break, a newline after a full stop.
-    /// CR appears in exactly one: itself, unmerged. So CR-delimited text is not "structure the model
-    /// reads slightly differently", it is structure the model never sees, replaced by a token it has
-    /// almost no training signal for.
-    ///
-    /// Done here rather than on save so that agents already stored with CR line endings are fixed on
-    /// read, and so the user's brief - which is never persisted - is covered by the same pass.
-    /// </summary>
-    private static string NormalizeLineEndings(string text) =>
-        text.Replace("\r\n", "\n").Replace('\r', '\n');
 
     public void AddToHistory(AuthorRole role, string content)
     {
@@ -226,6 +131,37 @@ public sealed class LlamaAgentResponseGenerator : IDisposable
             Interlocked.Exchange(ref _busy, 0);
         }
     }
+
+    #region Private Methods
+
+    private void WarnIfNoStopMarker()
+    {
+        if (HasStopMarker)
+            return;
+
+        Log.Debug(
+            "This agent has no stop marker, so the only thing that can end generation is the model emitting " +
+            "end-of-turn. If it does not, generation runs to the {MaxTokens} token cap and repeats itself to " +
+            "get there. Give the agent a stop marker and tell its system prompt to end with it",
+            _maxTokens);
+    }
+    
+    private void WarnIfThinkingPrefillIsWasted()
+    {
+        if (!_llamaChatSessionGenerator.SuppressThinking || _llamaChatSessionGenerator.ModelUsesThinkingTags)
+            return;
+
+        Log.Warning(
+            "This agent has Suppress Thinking on, but the loaded model does not use {ThinkTag} tags - its chat " +
+            "template never writes one and its tokenizer does not carry one. The prefill is stray text where the " +
+            "reply should start, which can leave the model generating past the end of its turn and repeating " +
+            "itself until it hits the {MaxTokens} token cap. Turn Suppress Thinking off for this agent",
+            ThinkOpenTag,
+            _maxTokens);
+    }
+
+    private static string NormalizeLineEndings(string text) =>
+        text.Replace("\r\n", "\n").Replace('\r', '\n');
 
     /// <summary>
     /// Removes the stop marker and everything after it, reporting whether one was found.
@@ -331,6 +267,8 @@ public sealed class LlamaAgentResponseGenerator : IDisposable
 
         return response.Trim();
     }
+
+    #endregion
     
     public void Dispose()
     {

@@ -67,7 +67,7 @@ public sealed class LlamaChatSessionGenerator(
         var executor = new InteractiveExecutor(_context);
 
         var session = new ChatSession(executor, chatHistory);
-
+        
         // add the default templator. If llama.cpp doesn't support the template by default,
         // you'll need to write your own transformer to format the prompt correctly
         //

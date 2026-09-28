@@ -1,7 +1,7 @@
 ﻿using GameVisionTool.Common.Domain.Queries;
 using GameVisionTool.Messages.Common;
 
-namespace GameVisionTool.Messages.Queries.Backstory.Llama;
+namespace GameVisionTool.Messages.Queries.Story.Llama;
 
 public class GetLlamaAgentResponse(
     string modelPath,
@@ -12,7 +12,8 @@ public class GetLlamaAgentResponse(
     float temperature,
     string agentSystemPrompt,
     bool suppressThinking,
-    string stopMarker) : IAmALlamaSharpQuery<LlamaResponse>
+    string stopMarker,
+    List<KeyValuePair<string, string>> chatHistory) : IAmALlamaSharpQuery<LlamaResponse>
 {
     public string ModelPath { get; } = modelPath;
     public string Content { get; } = content;
@@ -23,4 +24,5 @@ public class GetLlamaAgentResponse(
     public string AgentSystemPrompt { get; } = agentSystemPrompt;
     public bool SuppressThinking { get; } = suppressThinking;
     public string StopMarker { get; } = stopMarker;
+    public List<KeyValuePair<string, string>> ChatHistory { get; } = chatHistory;
 }

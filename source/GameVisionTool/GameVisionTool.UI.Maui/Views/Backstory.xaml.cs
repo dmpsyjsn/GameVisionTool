@@ -4,15 +4,17 @@ using GameVisionTool.Common.Domain.Services;
 using GameVisionTool.Logic.Domain.AgentSettings;
 using GameVisionTool.Logic.Domain.MainSettings;
 using GameVisionTool.Logic.Helpers;
+using GameVisionTool.Messages.Common;
 using GameVisionTool.Messages.Queries.Agents;
-using GameVisionTool.Messages.Queries.Backstory.Gemini;
-using GameVisionTool.Messages.Queries.Backstory.Llama;
+using GameVisionTool.Messages.Queries.Story.Gemini;
+using GameVisionTool.Messages.Queries.Story.Llama;
 using GameVisionTool.Messages.Queries.Ideas;
 using GameVisionTool.Messages.Queries.Llama;
 using GameVisionTool.Messages.Queries.MainSettings;
 using Serilog;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using LLama.Common;
 
 namespace GameVisionTool.UI.Maui.Views;
 
@@ -684,6 +686,7 @@ public partial class Backstory
             {
                 field = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanStartOver));
             }
         }
     } = string.Empty;
@@ -702,6 +705,8 @@ public partial class Backstory
         }
     } = string.Empty;
 
+    private List<KeyValuePair<string, string>> ChatHistory { get; set; } = new List<KeyValuePair<string, string>>();
+
     // Set when a generation succeeds rather than computed from the text. Clearing the editor to
     // paste something else would otherwise make the section vanish with no way to bring it back.
     public bool HasGeneratedBackstory
@@ -713,9 +718,20 @@ public partial class Backstory
             {
                 field = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanAcceptOrRejectBackstory));
+                OnPropertyChanged(nameof(CanStartOver));
             }
         }
     }
+
+    // There is nothing to accept or reject before the first generation, and a draft that is being
+    // replaced by a running one is not the draft the user would be deciding on.
+    public bool CanAcceptOrRejectBackstory => HasGeneratedBackstory && !IsWorking;
+
+    // Unlike Accept and Reject this does not need a draft - a brief typed and thought better of is
+    // worth being able to clear too. On an untouched page there is nothing to reset, so it stays shut
+    // rather than offering an action that would do nothing.
+    public bool CanStartOver => !IsWorking && (HasGeneratedBackstory || !string.IsNullOrEmpty(BackstoryBrief));
 
     // A generation holds the provider's weights for its whole run, so the model picker has to stay
     // shut until it finishes - reselecting would dispose weights out from under a live inference.
@@ -762,6 +778,8 @@ public partial class Backstory
         OnPropertyChanged(nameof(CanSelectApiLlmSetting));
         OnPropertyChanged(nameof(CanEditBrief));
         OnPropertyChanged(nameof(CanGenerate));
+        OnPropertyChanged(nameof(CanAcceptOrRejectBackstory));
+        OnPropertyChanged(nameof(CanStartOver));
     }
 
     // Both providers end at the same place - a string in the editor - so the two paths only differ in
@@ -820,9 +838,69 @@ public partial class Backstory
         }
     }
 
-    // Both providers end at the same place, so they hand back the same shape: the text, plus whether
-    // the model ran out of budget partway through it.
-    private sealed record GenerationOutcome(string Text, bool WasTruncated);
+    // Accepting the draft is where it gets kept. Nothing persists a backstory yet - StorySetting
+    // exists as an entity but has no command, handler or store behind it - so this is the seam that
+    // the save is wired into, not a button that quietly does nothing by design.
+    private void OnAcceptBackstoryClicked(object? sender, EventArgs e)
+    {
+        // TODO: dispatch the save of GeneratedBackstory against SelectedIdea once the command exists.
+    }
+
+    // Discarding a draft is the one action here that cannot be undone - the text is gone and the only
+    // way back is another generation, which on a local model is minutes - so it asks first.
+    private async void OnRejectBackstoryClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var confirmReject = await DisplayAlertAsync(
+                "Confirm Reject",
+                "Are you sure you want to discard this backstory?",
+                "Reject",
+                "Cancel");
+
+            if (!confirmReject)
+                return; // User cancelled
+
+            GeneratedBackstory = string.Empty;
+            HasGeneratedBackstory = false;
+            ChatHistory.Add(new KeyValuePair<string, string>(nameof(AuthorRole.User),
+                "The user rejected this backstory.  Generate another backstory that is slightly different"));
+            OnGenerateBackstoryClicked(sender, e);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Error(ex.Message);
+            await DisplayAlertAsync("Error", $"Failed to reject backstory: {ex.Message}", "OK");
+        }
+    }
+
+    // Reject keeps the conversation and asks for a variation, so every attempt stays anchored to what
+    // the model has already written. This is the way out of that: the history goes with the brief and
+    // the draft, so the next Generate is a first turn again rather than the latest of many.
+    private async void OnStartOverClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var confirmStartOver = await DisplayAlertAsync(
+                "Confirm Start Over",
+                "Are you sure you want to clear the brief, the backstory and everything generated so far?",
+                "Start Over",
+                "Cancel");
+
+            if (!confirmStartOver)
+                return; // User cancelled
+
+            BackstoryBrief = string.Empty;
+            GeneratedBackstory = string.Empty;
+            HasGeneratedBackstory = false;
+            ChatHistory = [];
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Error(ex.Message);
+            await DisplayAlertAsync("Error", $"Failed to start over: {ex.Message}", "OK");
+        }
+    }
 
     private async Task<Result<GenerationOutcome>?> GenerateWithLocalLlm(int maxTokens)
     {
@@ -839,11 +917,15 @@ public partial class Backstory
 
         var result = await _asyncQueryProcessor.ProcessAsync(
             new GetLlamaAgentResponse(
-                modelPath, BackstoryBrief, selected!.ContextSize, selected.GpuLayerCount, maxTokens, temperature, agent.SystemPrompt, agent.SuppressThinking, agent.StopMarker));
-
-        return result.IsSuccess
-            ? Result.Ok(new GenerationOutcome(result.Value.Response, result.Value.WasTruncated))
-            : Result.Fail<GenerationOutcome>(result.Error);
+                modelPath, BackstoryBrief, selected!.ContextSize, selected.GpuLayerCount, maxTokens, temperature,
+                agent.SystemPrompt, agent.SuppressThinking, agent.StopMarker, ChatHistory));
+        
+        if (result.IsSuccess)
+        {
+            ChatHistory.Add(new KeyValuePair<string, string>(nameof(AuthorRole.Assistant), result.Value.Response));
+            return Result.Ok(new GenerationOutcome(result.Value.Response, result.Value.WasTruncated));
+        } 
+        return Result.Fail<GenerationOutcome>(result.Error);
     }
 
     private async Task<Result<GenerationOutcome>?> GenerateWithGemini(int maxTokens)
@@ -859,6 +941,8 @@ public partial class Backstory
         // Model, max tokens and thinking level all come from the form - pre-filled from the agent, then
         // overridable for one generation without editing the agent. Only the system instructions are
         // taken straight off the agent, since that is the part the agent actually is.
+        
+        // ToDo: Update GetGeminiAgentResponse so it includes the Chat History
         var result = await _asyncQueryProcessor.ProcessAsync(
             new GetGeminiAgentResponse(
                 apiSetting.ApiKey, ModelInput, BackstoryBrief, maxTokens, agent.SystemInstructions, ThinkingLevelInput));

@@ -386,13 +386,53 @@
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <Button
-                                Text="Generate Backstory"
-                                Clicked="OnGenerateBackstoryClicked"
-                                IsEnabled="{Binding CanGenerate}"
-                                BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
-                                TextColor="White"
-                                Margin="0,10,0,0" />
+                            <!-- Accept, Reject and Start Over sit beside Generate rather than under the
+                                 result: they all act on the same draft, so they read as one set of
+                                 choices. Accept and Reject are gated on a draft existing - there is
+                                 nothing to decide on before the first generation. -->
+                            <Grid ColumnSpacing="15" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0"
+                                        Text="Generate Backstory"
+                                        Clicked="OnGenerateBackstoryClicked"
+                                        IsEnabled="{Binding CanGenerate}"
+                                        BackgroundColor="{AppThemeBinding Light=Green, Dark=DarkGreen}"
+                                        TextColor="White" />
+
+                                <Button Grid.Column="1"
+                                        Text="Accept Backstory"
+                                        Clicked="OnAcceptBackstoryClicked"
+                                        IsEnabled="{Binding CanAcceptOrRejectBackstory}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource ButtonActiveLight}, Dark={StaticResource ButtonActiveDark}}"
+                                        TextColor="White"
+                                        Padding="15,8" />
+
+                                <Button Grid.Column="2"
+                                        Text="Reject Backstory"
+                                        Clicked="OnRejectBackstoryClicked"
+                                        IsEnabled="{Binding CanAcceptOrRejectBackstory}"
+                                        BackgroundColor="Red"
+                                        TextColor="White"
+                                        Padding="15,8" />
+
+                                <!-- Rejecting keeps the conversation and asks for another attempt, so
+                                     the model stays anchored to everything it has already written.
+                                     This is the way out of that: brief, draft and history all go, and
+                                     the next Generate starts from nothing. -->
+                                <Button Grid.Column="3"
+                                        Text="Start Over"
+                                        Clicked="OnStartOverClicked"
+                                        IsEnabled="{Binding CanStartOver}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource ButtonInactiveLight}, Dark={StaticResource ButtonInactiveDark}}"
+                                        TextColor="White"
+                                        Padding="15,8" />
+                            </Grid>
 
                             <!-- Generation runs for minutes on a local model and cannot be cancelled -
                                 IAsyncQueryHandler carries no CancellationToken - so the wait needs to
